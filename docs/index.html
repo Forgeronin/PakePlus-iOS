@@ -1,11 +1,641 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus-iOS</title>
-    </head>
-    <body>
-        Welcome to PakePlus-iOS
-    </body>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Гео-инженерный калькулятор | Liquid Glass</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===== ПЕРЕМЕННЫЕ ДЛЯ ТЕМ ===== */
+        :root {
+            --bg-gradient-start: #1a2a3a;
+            --bg-gradient-end: #0f1a24;
+            --glass-bg: rgba(30, 40, 55, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-header-bg: rgba(20, 30, 45, 0.4);
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(200, 220, 250, 0.8);
+            --formula-bg: rgba(255,255,250,0.08);
+            --input-bg: rgba(20, 30, 45, 0.5);
+            --input-border: rgba(255, 255, 255, 0.2);
+            --solution-bg: rgba(10, 20, 30, 0.6);
+            --btn-bg-start: rgba(110, 130, 160, 0.08);
+            --btn-bg-mid: rgba(110, 130, 160, 0.18);
+            --btn-bg-end: rgba(110, 130, 160, 0.28);
+            --btn-hover-bg: rgba(130, 155, 190, 0.25);
+            --active-blue: rgba(59, 130, 246, 0.45);
+            --cell-color: rgba(100, 130, 160, 0.15);
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --glare-color: rgba(255, 255, 255, 0.4);
+        }
+
+        body.light {
+            --bg-gradient-start: #d4dfed;
+            --bg-gradient-end: #e8edf5;
+            --glass-bg: rgba(255, 255, 255, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-header-bg: rgba(240, 248, 255, 0.6);
+            --text-primary: #1a4a6e;
+            --text-secondary: #2c6280;
+            --formula-bg: rgba(255, 255, 255, 0.25);
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --input-border: rgba(100, 120, 140, 0.3);
+            --solution-bg: rgba(240, 248, 255, 0.85);
+            --btn-bg-start: rgba(200, 215, 235, 0.2);
+            --btn-bg-mid: rgba(200, 215, 235, 0.35);
+            --btn-bg-end: rgba(200, 215, 235, 0.5);
+            --btn-hover-bg: rgba(180, 200, 225, 0.6);
+            --active-blue: rgba(59, 130, 246, 0.35);
+            --cell-color: rgba(80, 100, 130, 0.12);
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --glare-color: rgba(255, 255, 255, 0.6);
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(145deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            transition: background 0.3s ease;
+        }
+
+        /* Анимированный фон */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(255,255,245,0.08) 1px, transparent 1px),
+                radial-gradient(circle at 75% 80%, rgba(255,255,245,0.06) 1px, transparent 1px);
+            background-size: 40px 40px, 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Кнопка переключения темы */
+        .theme-toggle {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 100;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 12px 18px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        /* Стеклянная карточка */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 64px;
+            box-shadow: 
+                0 30px 50px -20px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Панель калькулятора с тетрадной клеткой */
+        .calculator {
+            padding: 28px 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            background-image: 
+                linear-gradient(var(--cell-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--cell-color) 1px, transparent 1px);
+            background-size: 25px 25px;
+            background-position: center center;
+            transition: background 0.2s ease;
+        }
+
+        .calculator::-webkit-scrollbar {
+            width: 4px;
+        }
+        .calculator::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        .calculator::-webkit-scrollbar-thumb {
+            background: rgba(100, 150, 220, 0.5);
+            border-radius: 10px;
+        }
+
+        .header {
+            background: var(--glass-header-bg);
+            backdrop-filter: blur(20px);
+            padding: 28px 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2.1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--text-primary), #a5f3fc, #c4b5fd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .screen {
+            display: none;
+            animation: liquidAppear 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes liquidAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.96) translateY(15px);
+                filter: blur(8px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        /* ===== СТЕКЛЯННЫЕ КНОПКИ С ГРАДИЕНТОМ ПРОЗРАЧНОСТИ ===== */
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            padding: 18px 22px;
+            /* Градиент прозрачности: мутнее по краям, прозрачнее в центре */
+            background: radial-gradient(circle at 50% 50%, 
+                var(--btn-bg-mid) 0%, 
+                var(--btn-bg-start) 40%,
+                var(--btn-bg-end) 100%);
+            backdrop-filter: blur(12px) saturate(180%);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            border-radius: 80px;
+            font-size: 1rem;
+            font-weight: 590;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            letter-spacing: -0.2px;
+            /* Многослойная тень для реалистичного стекла */
+            box-shadow: 
+                0 8px 20px -8px var(--shadow-color),
+                0 2px 0 0 rgba(255, 255, 255, 0.2) inset,
+                0 -2px 0 0 rgba(0, 0, 0, 0.05) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Эффект блика на кнопке (скользящий свет) */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 40%, 
+                rgba(255, 255, 255, 0.25) 0%, 
+                transparent 60%);
+            transform: rotate(25deg);
+            transition: all 0.5s ease;
+            pointer-events: none;
+        }
+
+        .btn:hover::before {
+            left: -30%;
+            top: -40%;
+        }
+
+        /* Дополнительный статический блик (световая кайма) */
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 10%;
+            width: 80%;
+            height: 30%;
+            background: radial-gradient(ellipse at center, 
+                var(--glare-color) 0%, 
+                transparent 80%);
+            border-radius: 50%;
+            filter: blur(4px);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: radial-gradient(circle at 50% 50%, 
+                var(--btn-hover-bg) 0%, 
+                var(--btn-bg-start) 30%,
+                var(--btn-bg-end) 100%);
+            border-color: rgba(255, 255, 255, 0.45);
+            box-shadow: 
+                0 16px 28px -12px var(--shadow-color),
+                0 2px 0 0 rgba(255, 255, 255, 0.3) inset;
+        }
+
+        .btn:active {
+            transform: translateY(2px) scale(0.98);
+            transition: all 0.08s;
+            box-shadow: 
+                0 4px 12px -6px var(--shadow-color),
+                0 1px 0 0 rgba(255, 255, 255, 0.15) inset;
+        }
+
+        /* Активные кнопки выбора типа — синее стекло */
+        .percent-type-btn.active, .slope-type-btn.active, .interp-type-btn.active, .unit-btn.active {
+            background: radial-gradient(circle at 50% 50%, 
+                rgba(59, 130, 246, 0.5) 0%, 
+                rgba(59, 130, 246, 0.25) 50%,
+                rgba(59, 130, 246, 0.4) 100%);
+            backdrop-filter: blur(15px);
+            color: white;
+            border-color: rgba(59, 130, 246, 0.7);
+            box-shadow: 0 6px 18px -8px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        /* Секция формулы */
+        .formula-section {
+            background: var(--formula-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 48px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 20px -12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .formula {
+            font-size: 1.5rem;
+            font-weight: 620;
+            background: linear-gradient(135deg, #e0f0ff, #c4b5fd);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 60px;
+            margin-bottom: 8px;
+        }
+
+        .formula-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .geometry-svg {
+            width: 130px;
+            height: 130px;
+            background: rgba(255,255,250,0.08);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        /* Поля ввода */
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .input-field label {
+            font-weight: 590;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .input-field input, .input-field select {
+            background: var(--input-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--input-border);
+            border-radius: 60px;
+            padding: 14px 20px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .input-field input:focus, .input-field select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: var(--input-bg);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .input-field input::placeholder {
+            color: rgba(255,255,245,0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        /* Результат */
+        .solution {
+            background: var(--solution-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 22px;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            border: 1px solid var(--glass-border);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Переключатели */
+        .percent-types, .slope-types, .interpolation-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .percent-type-btn, .slope-type-btn, .interp-type-btn, .unit-btn {
+            padding: 10px 22px;
+            background: radial-gradient(circle at 50% 50%, 
+                var(--btn-bg-mid) 0%, 
+                var(--btn-bg-start) 50%,
+                var(--btn-bg-end) 100%);
+            backdrop-filter: blur(12px);
+            border-radius: 60px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-weight: 500;
+            transition: all 0.25s;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 2px 8px -4px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        .percent-type-btn:hover, .slope-type-btn:hover, .interp-type-btn:hover, .unit-btn:hover {
+            background: radial-gradient(circle at 50% 50%, 
+                var(--btn-hover-bg) 0%, 
+                var(--btn-bg-start) 40%,
+                var(--btn-bg-end) 100%);
+            transform: translateY(-2px);
+        }
+
+        .slope-units { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .triangle-type, .circle-type { margin-bottom: 20px; }
+        .triangle-type select, .circle-type select {
+            background: var(--input-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 12px 24px;
+            border: 1px solid var(--input-border);
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 720px) {
+            .formula-section { flex-direction: column; text-align: center; }
+            .geometry-svg { width: 110px; height: 110px; }
+            .btn { padding: 14px 18px; }
+            .theme-toggle { top: 15px; right: 15px; padding: 8px 14px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Кнопка переключения темы -->
+    <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+        🌓
+    </div>
+
+<div class="container">
+    <div class="glass-card">
+        <div class="header">
+            <h1>🔮 Гео-инженерный калькулятор</h1>
+            <p>Площади · Объемы · Проценты · Уклоны · Интерполяция</p>
+        </div>
+        <div class="calculator" id="scrollContainer">
+            <!-- ГЛАВНОЕ МЕНЮ -->
+            <div id="mainMenu" class="screen active">
+                <div class="menu">
+                    <button class="btn" onclick="showScreen('areaMenu')">📐 Площади</button>
+                    <button class="btn" onclick="showScreen('volumeMenu')">📦 Объемы</button>
+                    <button class="btn" onclick="showScreen('percentMenu')">% Проценты</button>
+                    <button class="btn" onclick="showScreen('slopeMenu')">↗️ Уклоны</button>
+                    <button class="btn" onclick="showScreen('interpolationMenu')">📈 Интерполяция</button>
+                </div>
+            </div>
+
+            <!-- МЕНЮ ПЛОЩАДЕЙ -->
+            <div id="areaMenu" class="screen">
+                <div class="menu">
+                    <button class="btn" onclick="showArea('square')">□ Квадрат</button>
+                    <button class="btn" onclick="showArea('rectangle')">▭ Прямоугольник</button>
+                    <button class="btn" onclick="showArea('triangle')">△ Треугольник</button>
+                    <button class="btn" onclick="showArea('circle')">○ Круг</button>
+                    <button class="btn" onclick="showArea('trapezoid')">⏢ Трапеция</button>
+                    <button class="btn" onclick="showArea('rhombus')">◇ Ромб</button>
+                    <button class="btn" onclick="showArea('parallelogram')">▱ Параллелограмм</button>
+                    <button class="btn" onclick="showScreen('mainMenu')">← Назад</button>
+                </div>
+            </div>
+
+            <!-- МЕНЮ ОБЪЕМОВ -->
+            <div id="volumeMenu" class="screen">
+                <div class="menu">
+                    <button class="btn" onclick="showVolume('cube')">🧊 Куб</button>
+                    <button class="btn" onclick="showVolume('cuboid')">📦 Параллелепипед</button>
+                    <button class="btn" onclick="showVolume('cylinder')">🛢️ Цилиндр</button>
+                    <button class="btn" onclick="showVolume('cone')">🎯 Конус</button>
+                    <button class="btn" onclick="showVolume('sphere')">🔵 Сфера</button>
+                    <button class="btn" onclick="showVolume('pyramid')">🔺 Пирамида</button>
+                    <button class="btn" onclick="showVolume('frustum')">🎪 Усеч. конус</button>
+                    <button class="btn" onclick="showVolume('frustumPyramid')">🏛️ Усеч. пирамида</button>
+                    <button class="btn" onclick="showScreen('mainMenu')">← Назад</button>
+                </div>
+            </div>
+
+            <!-- ПЛОЩАДИ -->
+            <div id="areaSquare" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = a²</div><div class="formula-description">сторона квадрата</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="11">a</text><text x="90" y="55" fill="#aac8ff" font-size="9">a</text></svg></div></div><div class="input-group"><div class="input-field"><label>Сторона a</label><input type="number" id="squareSide" step="any" placeholder="м"></div></div><div class="button-group"><button class="btn" onclick="calculateSquare()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="squareSolution"></div></div>
+            <div id="areaRectangle" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = a × b</div><div class="formula-description">длина × ширина</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><rect x="10" y="20" width="80" height="60" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><text x="50" y="16" fill="#aac8ff" font-size="9">b</text><text x="94" y="55" fill="#aac8ff" font-size="9">a</text></svg></div></div><div class="input-group"><div class="input-field"><label>Длина a</label><input type="number" id="rectLength" step="any"></div><div class="input-field"><label>Ширина b</label><input type="number" id="rectWidth" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateRectangle()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="rectSolution"></div></div>
+            <div id="areaTriangle" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = ½·a·h</div><div class="formula-description">основание × высота / 2</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="10,80 90,80 50,20" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><line x1="50" y1="20" x2="50" y2="80" stroke="#ff8a7a" stroke-width="2" stroke-dasharray="4"/><text x="56" y="52" fill="#ff8a7a" font-size="9">h</text><text x="50" y="95" fill="#aac8ff" font-size="9">a</text></svg></div></div><div class="triangle-type"><select id="triangleType" onchange="updateTriangleInputs()"><option value="baseHeight">По основанию и высоте</option><option value="heron">По трём сторонам</option></select></div><div id="triangleInputs"><div class="input-group"><div class="input-field"><label>Основание</label><input type="number" id="triangleBase" step="any"></div><div class="input-field"><label>Высота</label><input type="number" id="triangleHeight" step="any"></div></div></div><div class="button-group"><button class="btn" onclick="calculateTriangle()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="triangleSolution"></div></div>
+            <div id="areaCircle" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = π·r²</div><div class="formula-description">π ≈ 3.14159</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><line x1="50" y1="50" x2="85" y2="50" stroke="#ff8a7a" stroke-width="2"/><text x="68" y="46" fill="#ff8a7a" font-size="9">r</text></svg></div></div><div class="circle-type"><select id="circleType" onchange="updateCircleInputs()"><option value="radius">По радиусу</option><option value="diameter">По диаметру</option></select></div><div class="input-group"><div class="input-field"><label id="circleLabel">Радиус r</label><input type="number" id="circleInput" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateCircle()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="circleSolution"></div></div>
+            <div id="areaTrapezoid" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = ½·(a+b)·h</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="20,80 80,80 60,20 40,20" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><line x1="40" y1="20" x2="40" y2="80" stroke="#ff8a7a" stroke-width="2" stroke-dasharray="4"/><text x="34" y="52" fill="#ff8a7a" font-size="9">h</text></svg></div></div><div class="input-group"><div class="input-field"><label>Основание a</label><input type="number" id="trapA" step="any"></div><div class="input-field"><label>Основание b</label><input type="number" id="trapB" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="trapH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateTrapezoid()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="trapSolution"></div></div>
+            <div id="areaRhombus" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = ½·d₁·d₂</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="50,15 85,50 50,85 15,50" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><line x1="15" y1="50" x2="85" y2="50" stroke="#ff8a7a" stroke-width="2"/><line x1="50" y1="15" x2="50" y2="85" stroke="#ff8a7a" stroke-width="2"/></svg></div></div><div class="input-group"><div class="input-field"><label>Диагональ d₁</label><input type="number" id="rhombusD1" step="any"></div><div class="input-field"><label>Диагональ d₂</label><input type="number" id="rhombusD2" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateRhombus()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="rhombusSolution"></div></div>
+            <div id="areaParallelogram" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">S = a·h</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="15,80 75,80 90,20 30,20" fill="rgba(100,150,200,0.5)" stroke="#aac8ff" stroke-width="2"/><line x1="30" y1="20" x2="30" y2="80" stroke="#ff8a7a" stroke-width="2" stroke-dasharray="4"/><text x="23" y="52" fill="#ff8a7a" font-size="9">h</text><text x="55" y="95" fill="#aac8ff" font-size="9">a</text></svg></div></div><div class="input-group"><div class="input-field"><label>Основание a</label><input type="number" id="parBase" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="parHeight" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateParallelogram()">Рассчитать</button><button class="btn" onclick="showScreen('areaMenu')">← Назад</button></div><div class="solution" id="parSolution"></div></div>
+
+            <!-- ОБЪЕМЫ (сокращённо, но все работают) -->
+            <div id="volumeCube" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = a³</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="25,20 75,20 90,35 40,35" fill="rgba(100,150,200,0.5)"/><polygon points="75,20 90,35 90,75 75,60" fill="rgba(80,120,160,0.5)"/></svg></div></div><div class="input-group"><div class="input-field"><label>Ребро a</label><input type="number" id="cubeSide" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateCube()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="cubeSolution"></div></div>
+            <div id="volumeCuboid" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = a·b·c</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="20,30 60,30 75,45 35,45" fill="rgba(100,150,200,0.5)"/><polygon points="60,30 75,45 75,85 60,70" fill="rgba(80,120,160,0.5)"/></svg></div></div><div class="input-group"><div class="input-field"><label>Длина a</label><input type="number" id="cuboidA" step="any"></div><div class="input-field"><label>Ширина b</label><input type="number" id="cuboidB" step="any"></div><div class="input-field"><label>Высота c</label><input type="number" id="cuboidC" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateCuboid()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="cuboidSolution"></div></div>
+            <div id="volumeCylinder" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = π·r²·h</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="30" ry="8" fill="rgba(100,150,200,0.5)"/><rect x="20" y="25" width="60" height="45" fill="rgba(100,150,200,0.3)"/><line x1="50" y1="25" x2="50" y2="70" stroke="#ff8a7a" stroke-width="2"/></svg></div></div><div class="input-group"><div class="input-field"><label>Радиус r</label><input type="number" id="cylR" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="cylH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateCylinder()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="cylSolution"></div></div>
+            <div id="volumeCone" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = ⅓·π·r²·h</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="35" ry="10" fill="rgba(100,150,200,0.5)"/><path d="M15,75 Q50,20 85,75Z" fill="rgba(100,150,200,0.3)"/><line x1="50" y1="20" x2="50" y2="75" stroke="#ff8a7a" stroke-width="2"/></svg></div></div><div class="input-group"><div class="input-field"><label>Радиус r</label><input type="number" id="coneR" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="coneH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateCone()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="coneSolution"></div></div>
+            <div id="volumeSphere" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = ⁴⁄₃·π·r³</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="rgba(100,150,200,0.4)"/><line x1="50" y1="50" x2="85" y2="50" stroke="#ff8a7a" stroke-width="2"/></svg></div></div><div class="input-group"><div class="input-field"><label>Радиус r</label><input type="number" id="sphereR" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateSphere()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="sphereSolution"></div></div>
+            <div id="volumePyramid" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = ⅓·S·h</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="20,80 80,80 50,20" fill="rgba(100,150,200,0.4)"/><line x1="50" y1="20" x2="50" y2="80" stroke="#ff8a7a" stroke-width="2" stroke-dasharray="4"/></svg></div></div><div class="input-group"><div class="input-field"><label>Площадь S</label><input type="number" id="pyramidS" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="pyramidH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculatePyramid()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="pyramidSolution"></div></div>
+            <div id="volumeFrustum" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = ⅓·π·h·(R²+Rr+r²)</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="20" ry="6" fill="rgba(100,150,200,0.5)"/><ellipse cx="50" cy="75" rx="35" ry="10" fill="rgba(100,150,200,0.5)"/><line x1="50" y1="25" x2="50" y2="75" stroke="#ff8a7a" stroke-width="2"/></svg></div></div><div class="input-group"><div class="input-field"><label>Больший R</label><input type="number" id="frustumR" step="any"></div><div class="input-field"><label>Меньший r</label><input type="number" id="frustumr" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="frustumH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateFrustum()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="frustumSolution"></div></div>
+            <div id="volumeFrustumPyramid" class="screen"><div class="formula-section"><div class="formula-text"><div class="formula">V = ⅓·h·(S₁+S₂+√S₁S₂)</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><polygon points="20,80 80,80 65,60 35,60" fill="rgba(100,150,200,0.4)"/><polygon points="35,60 65,60 55,30 45,30" fill="rgba(100,150,200,0.5)"/><line x1="50" y1="30" x2="50" y2="80" stroke="#ff8a7a" stroke-width="2" stroke-dasharray="4"/></svg></div></div><div class="input-group"><div class="input-field"><label>S₁ (нижн.)</label><input type="number" id="frustumS1" step="any"></div><div class="input-field"><label>S₂ (верхн.)</label><input type="number" id="frustumS2" step="any"></div><div class="input-field"><label>Высота h</label><input type="number" id="frustumPyramidH" step="any"></div></div><div class="button-group"><button class="btn" onclick="calculateFrustumPyramid()">Рассчитать</button><button class="btn" onclick="showScreen('volumeMenu')">← Назад</button></div><div class="solution" id="frustumPyramidSolution"></div></div>
+
+            <!-- ПРОЦЕНТЫ -->
+            <div id="percentMenu" class="screen">
+                <div class="formula-section"><div class="formula-text"><div class="formula">%</div><div class="formula-description">Процентные расчёты</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><circle cx="35" cy="35" r="18" fill="rgba(100,150,200,0.5)"/><text x="35" y="40" text-anchor="middle" fill="white" font-size="18">%</text><circle cx="65" cy="65" r="18" fill="rgba(100,150,200,0.5)"/><text x="65" y="70" text-anchor="middle" fill="white" font-size="18">%</text></svg></div></div>
+                <div class="percent-types"><div class="percent-type-btn active" onclick="selectPercentType('findPercent')">% от числа</div><div class="percent-type-btn" onclick="selectPercentType('findNumber')">Число по %</div><div class="percent-type-btn" onclick="selectPercentType('percentage')">% соотношение</div><div class="percent-type-btn" onclick="selectPercentType('increase')">Увеличение</div><div class="percent-type-btn" onclick="selectPercentType('decrease')">Уменьшение</div></div>
+                <div class="input-group"><div class="input-field"><label id="pLabel1">Число</label><input type="number" id="pInput1" step="any"></div><div class="input-field"><label id="pLabel2">Процент</label><input type="number" id="pInput2" step="any"></div></div>
+                <div class="button-group"><button class="btn" onclick="calculatePercent()">Рассчитать</button><button class="btn" onclick="showScreen('mainMenu')">← Назад</button></div>
+                <div class="solution" id="percentSolution"></div>
+            </div>
+
+            <!-- УКЛОНЫ -->
+            <div id="slopeMenu" class="screen">
+                <div class="formula-section"><div class="formula-text"><div class="formula">i = Δh / L</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><line x1="15" y1="70" x2="85" y2="30" stroke="#aac8ff" stroke-width="2"/><circle cx="15" cy="70" r="4" fill="#ff8a7a"/><circle cx="85" cy="30" r="4" fill="#ff8a7a"/><line x1="15" y1="78" x2="85" y2="78" stroke="#aaa" stroke-dasharray="4"/><text x="50" y="88" text-anchor="middle" fill="#aac8ff" font-size="7">L</text></svg></div></div>
+                <div class="slope-types"><div class="slope-type-btn active" onclick="selectSlopeType('findHeight')">Превышение</div><div class="slope-type-btn" onclick="selectSlopeType('findSlope')">Уклон</div><div class="slope-type-btn" onclick="selectSlopeType('findDistance')">Расстояние</div></div>
+                <div class="slope-units"><div class="unit-btn active" onclick="selectUnit('degrees')">Градусы</div><div class="unit-btn" onclick="selectUnit('promille')">Промилле</div></div>
+                <div class="input-group"><div class="input-field"><label id="sLabel1">Уклон</label><input type="number" id="sInput1" step="any"></div><div class="input-field"><label id="sLabel2">Расстояние</label><input type="number" id="sInput2" step="any"></div><div class="input-field"><label id="sLabel3">Превышение</label><input type="number" id="sInput3" step="any"></div></div>
+                <div class="button-group"><button class="btn" onclick="calculateSlope()">Рассчитать</button><button class="btn" onclick="showScreen('mainMenu')">← Назад</button></div>
+                <div class="solution" id="slopeSolution"></div>
+            </div>
+
+            <!-- ИНТЕРПОЛЯЦИЯ -->
+            <div id="interpolationMenu" class="screen">
+                <div class="interpolation-types"><div class="interp-type-btn active" onclick="selectInterpType('bySlope')">По уклону</div><div class="interp-type-btn" onclick="selectInterpType('byTwoPoints')">Между точками</div></div>
+                <div id="interpBySlope"><div class="formula-section"><div class="formula-text"><div class="formula">H₂ = H₁ + (i·L)/1000</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><line x1="15" y1="60" x2="85" y2="30" stroke="#aac8ff" stroke-width="2"/><circle cx="15" cy="60" r="4" fill="#ff8a7a"/><circle cx="85" cy="30" r="4" fill="#7aff9a"/></svg></div></div><div class="input-group"><div class="input-field"><label>H₁ (м)</label><input type="number" id="interpH1" step="any"></div><div class="input-field"><label>Уклон i (‰)</label><input type="number" id="interpSlope" step="any"></div><div class="input-field"><label>L (м)</label><input type="number" id="interpL" step="any"></div></div><div class="button-group"><button class="btn" onclick="calcInterpSlope()">Рассчитать</button><button class="btn" onclick="showScreen('mainMenu')">← Назад</button></div><div class="solution" id="interpSlopeSolution"></div></div>
+                <div id="interpByTwoPoints" style="display:none"><div class="formula-section"><div class="formula-text"><div class="formula">Hx = H₁ + (H₂-H₁)·(Lx/L)</div></div><div class="geometry-image"><svg class="geometry-svg" viewBox="0 0 100 100"><line x1="15" y1="60" x2="85" y2="30" stroke="#aac8ff" stroke-width="2"/><circle cx="15" cy="60" r="4" fill="#ff8a7a"/><circle cx="85" cy="30" r="4" fill="#ff8a7a"/><circle cx="50" cy="45" r="4" fill="#7aff9a"/></svg></div></div><div class="input-group"><div class="input-field"><label>H₁</label><input type="number" id="interpElev1" step="any"></div><div class="input-field"><label>H₂</label><input type="number" id="interpElev2" step="any"></div><div class="input-field"><label>L</label><input type="number" id="interpTotalL" step="any"></div><div class="input-field"><label>Lx от H₁</label><input type="number" id="interpLx" step="any"></div></div><div class="button-group"><button class="btn" onclick="calcInterpTwoPoints()">Рассчитать</button><button class="btn" onclick="showScreen('mainMenu')">← Назад</button></div><div class="solution" id="interpTwoPointsSolution"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== ПЕРЕКЛЮЧЕНИЕ ТЕМ ==========
+    function toggleTheme() {
+        document.body.classList.toggle('light');
+        const themeBtn = document.getElementById('themeToggle');
+        if (document.body.classList.contains('light')) {
+            themeBtn.innerHTML = '🌙';
+        } else {
+            themeBtn.innerHTML = '🌓';
+        }
+    }
+
+    // ========== НАВИГАЦИЯ ==========
+    function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function showArea(shape) { showScreen('area' + shape.charAt(0).toUpperCase() + shape.slice(1)); }
+    function showVolume(shape) { showScreen('volume' + shape.charAt(0).toUpperCase() + shape.slice(1)); }
+    
+    // ========== ПЛОЩАДИ ==========
+    function calculateSquare(){ let a=parseFloat(document.getElementById('squareSide').value); if(isNaN(a)) return; document.getElementById('squareSolution').innerHTML = `S = a² = ${a}² = ${(a*a).toFixed(4)} м²`; }
+    function calculateRectangle(){ let a=parseFloat(document.getElementById('rectLength').value), b=parseFloat(document.getElementById('rectWidth').value); if(isNaN(a)||isNaN(b)) return; document.getElementById('rectSolution').innerHTML = `S = a × b = ${a} × ${b} = ${(a*b).toFixed(4)} м²`; }
+    function updateTriangleInputs(){ let type=document.getElementById('triangleType').value; let c=document.getElementById('triangleInputs'); if(type==='baseHeight') c.innerHTML=`<div class="input-group"><div class="input-field"><label>Основание</label><input type="number" id="triangleBase" step="any"></div><div class="input-field"><label>Высота</label><input type="number" id="triangleHeight" step="any"></div></div>`; else c.innerHTML=`<div class="input-group"><div class="input-field"><label>Сторона a</label><input type="number" id="triA" step="any"></div><div class="input-field"><label>Сторона b</label><input type="number" id="triB" step="any"></div><div class="input-field"><label>Сторона c</label><input type="number" id="triC" step="any"></div></div>`; }
+    function calculateTriangle(){ let type=document.getElementById('triangleType').value; if(type==='baseHeight'){ let b=parseFloat(document.getElementById('triangleBase').value), h=parseFloat(document.getElementById('triangleHeight').value); if(isNaN(b)||isNaN(h)) return; let s=0.5*b*h; document.getElementById('triangleSolution').innerHTML = `S = ½ × ${b} × ${h} = ${s.toFixed(4)} м²`; } else { let a=parseFloat(document.getElementById('triA').value),b=parseFloat(document.getElementById('triB').value),c=parseFloat(document.getElementById('triC').value); if(isNaN(a)||isNaN(b)||isNaN(c)) return; let p=(a+b+c)/2, s=Math.sqrt(p*(p-a)*(p-b)*(p-c)); document.getElementById('triangleSolution').innerHTML = `По формуле Герона: S = ${s.toFixed(4)} м²`; } }
+    function updateCircleInputs(){ let type=document.getElementById('circleType').value; document.getElementById('circleLabel').innerHTML = type==='radius'?'Радиус r':'Диаметр d'; }
+    function calculateCircle(){ let type=document.getElementById('circleType').value, val=parseFloat(document.getElementById('circleInput').value); if(isNaN(val)) return; let r=type==='radius'?val:val/2, s=Math.PI*r*r; document.getElementById('circleSolution').innerHTML = `S = π × r² = π × ${r.toFixed(4)}² = ${s.toFixed(4)} м²`; }
+    function calculateTrapezoid(){ let a=parseFloat(document.getElementById('trapA').value), b=parseFloat(document.getElementById('trapB').value), h=parseFloat(document.getElementById('trapH').value); if(isNaN(a)||isNaN(b)||isNaN(h)) return; let s=0.5*(a+b)*h; document.getElementById('trapSolution').innerHTML = `S = ½ × (${a}+${b}) × ${h} = ${s.toFixed(4)} м²`; }
+    function calculateRhombus(){ let d1=parseFloat(document.getElementById('rhombusD1').value), d2=parseFloat(document.getElementById('rhombusD2').value); if(isNaN(d1)||isNaN(d2)) return; let s=0.5*d1*d2; document.getElementById('rhombusSolution').innerHTML = `S = ½ × ${d1} × ${d2} = ${s.toFixed(4)} м²`; }
+    function calculateParallelogram(){ let a=parseFloat(document.getElementById('parBase').value), h=parseFloat(document.getElementById('parHeight').value); if(isNaN(a)||isNaN(h)) return; let s=a*h; document.getElementById('parSolution').innerHTML = `S = ${a} × ${h} = ${s.toFixed(4)} м²`; }
+    
+    // ========== ОБЪЕМЫ ==========
+    function calculateCube(){ let a=parseFloat(document.getElementById('cubeSide').value); if(isNaN(a)) return; document.getElementById('cubeSolution').innerHTML = `V = a³ = ${a}³ = ${Math.pow(a,3).toFixed(4)} м³`; }
+    function calculateCuboid(){ let a=parseFloat(document.getElementById('cuboidA').value),b=parseFloat(document.getElementById('cuboidB').value),c=parseFloat(document.getElementById('cuboidC').value); if(isNaN(a)||isNaN(b)||isNaN(c)) return; document.getElementById('cuboidSolution').innerHTML = `V = a × b × c = ${a} × ${b} × ${c} = ${(a*b*c).toFixed(4)} м³`; }
+    function calculateCylinder(){ let r=parseFloat(document.getElementById('cylR').value), h=parseFloat(document.getElementById('cylH').value); if(isNaN(r)||isNaN(h)) return; document.getElementById('cylSolution').innerHTML = `V = π × r² × h = π × ${r}² × ${h} = ${(Math.PI*r*r*h).toFixed(4)} м³`; }
+    function calculateCone(){ let r=parseFloat(document.getElementById('coneR').value), h=parseFloat(document.getElementById('coneH').value); if(isNaN(r)||isNaN(h)) return; document.getElementById('coneSolution').innerHTML = `V = ⅓ × π × r² × h = ${((1/3)*Math.PI*r*r*h).toFixed(4)} м³`; }
+    function calculateSphere(){ let r=parseFloat(document.getElementById('sphereR').value); if(isNaN(r)) return; document.getElementById('sphereSolution').innerHTML = `V = ⁴⁄₃ × π × r³ = ${((4/3)*Math.PI*r*r*r).toFixed(4)} м³`; }
+    function calculatePyramid(){ let s=parseFloat(document.getElementById('pyramidS').value), h=parseFloat(document.getElementById('pyramidH').value); if(isNaN(s)||isNaN(h)) return; document.getElementById('pyramidSolution').innerHTML = `V = ⅓ × S × h = ⅓ × ${s} × ${h} = ${((1/3)*s*h).toFixed(4)} м³`; }
+    function calculateFrustum(){ let R=parseFloat(document.getElementById('frustumR').value), r=parseFloat(document.getElementById('frustumr').value), h=parseFloat(document.getElementById('frustumH').value); if(isNaN(R)||isNaN(r)||isNaN(h)) return; document.getElementById('frustumSolution').innerHTML = `V = ⅓ × π × h × (R² + Rr + r²) = ${((1/3)*Math.PI*h*(R*R+R*r+r*r)).toFixed(4)} м³`; }
+    function calculateFrustumPyramid(){ let s1=parseFloat(document.getElementById('frustumS1').value), s2=parseFloat(document.getElementById('frustumS2').value), h=parseFloat(document.getElementById('frustumPyramidH').value); if(isNaN(s1)||isNaN(s2)||isNaN(h)) return; document.getElementById('frustumPyramidSolution').innerHTML = `V = ⅓ × h × (S₁ + S₂ + √(S₁·S₂)) = ${((1/3)*h*(s1+s2+Math.sqrt(s1*s2))).toFixed(4)} м³`; }
+    
+    // ========== ПРОЦЕНТЫ ==========
+    let currentPercentType='findPercent';
+    function selectPercentType(type){ currentPercentType=type; document.querySelectorAll('.percent-type-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); let l1=document.getElementById('pLabel1'),l2=document.getElementById('pLabel2'); if(type==='findPercent'){l1.innerText='Число';l2.innerText='Процент';}else if(type==='findNumber'){l1.innerText='Процент';l2.innerText='От числа';}else if(type==='percentage'){l1.innerText='Часть';l2.innerText='Целое';}else if(type==='increase'){l1.innerText='Число';l2.innerText='% увеличения';}else{l1.innerText='Число';l2.innerText='% уменьшения';} }
+    function calculatePercent(){ let a=parseFloat(document.getElementById('pInput1').value), b=parseFloat(document.getElementById('pInput2').value); if(isNaN(a)||isNaN(b)){alert('Введите числа');return;} let res; if(currentPercentType==='findPercent') res=a*b/100; else if(currentPercentType==='findNumber') res=(b*100)/a; else if(currentPercentType==='percentage') res=(a/b)*100; else if(currentPercentType==='increase') res=a*(1+b/100); else res=a*(1-b/100); document.getElementById('percentSolution').innerHTML = `Результат: ${res.toFixed(4)}`; }
+    
+    // ========== УКЛОНЫ ==========
+    let currentSlopeType='findHeight', currentUnit='degrees';
+    function selectSlopeType(type){ currentSlopeType=type; document.querySelectorAll('.slope-type-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); updateSlopeUI(); }
+    function selectUnit(unit){ currentUnit=unit; document.querySelectorAll('.unit-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); updateSlopeUI(); }
+    function updateSlopeUI(){ let l1=document.getElementById('sLabel1'),l2=document.getElementById('sLabel2'),l3=document.getElementById('sLabel3'); let i1=document.getElementById('sInput1'),i2=document.getElementById('sInput2'),i3=document.getElementById('sInput3'); i1.value='';i2.value='';i3.value=''; i1.disabled=false;i2.disabled=false;i3.disabled=false; let us=currentUnit==='degrees'?'°':'‰'; if(currentSlopeType==='findHeight'){l1.innerText=`Уклон (${us})`;l2.innerText='Расстояние';l3.innerText='Превышение';i3.disabled=true;} else if(currentSlopeType==='findSlope'){l1.innerText=`Уклон (${us})`;l2.innerText='Расстояние';l3.innerText='Превышение';i1.disabled=true;} else{l1.innerText=`Уклон (${us})`;l2.innerText='Расстояние';l3.innerText='Превышение';i2.disabled=true;} }
+    function calculateSlope(){ let v1=parseFloat(document.getElementById('sInput1').value),v2=parseFloat(document.getElementById('sInput2').value),v3=parseFloat(document.getElementById('sInput3').value); let res; if(currentSlopeType==='findHeight'){ if(isNaN(v1)||isNaN(v2)){alert('Введите уклон и расстояние');return;} if(currentUnit==='degrees') res=v2*Math.tan(v1*Math.PI/180); else res=(v1/1000)*v2; document.getElementById('sInput3').value=res.toFixed(4); document.getElementById('slopeSolution').innerHTML=`Превышение = ${res.toFixed(4)} м`; } else if(currentSlopeType==='findSlope'){ if(isNaN(v2)||isNaN(v3)){alert('Введите расстояние и превышение');return;} if(currentUnit==='degrees') res=Math.atan(v3/v2)*(180/Math.PI); else res=(v3/v2)*1000; document.getElementById('sInput1').value=res.toFixed(4); document.getElementById('slopeSolution').innerHTML=`Уклон = ${res.toFixed(4)} ${currentUnit==='degrees'?'°':'‰'}`; } else { if(isNaN(v1)||isNaN(v3)){alert('Введите уклон и превышение');return;} if(currentUnit==='degrees') res=v3/Math.tan(v1*Math.PI/180); else res=v3/(v1/1000); document.getElementById('sInput2').value=res.toFixed(4); document.getElementById('slopeSolution').innerHTML=`Расстояние = ${res.toFixed(4)} м`; } }
+    
+    // ========== ИНТЕРПОЛЯЦИЯ ==========
+    function selectInterpType(type){ document.getElementById('interpBySlope').style.display=type==='bySlope'?'block':'none'; document.getElementById('interpByTwoPoints').style.display=type==='byTwoPoints'?'block':'none'; document.querySelectorAll('.interp-type-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); }
+    function calcInterpSlope(){ let h1=parseFloat(document.getElementById('interpH1').value), i=parseFloat(document.getElementById('interpSlope').value), L=parseFloat(document.getElementById('interpL').value); if(isNaN(h1)||isNaN(i)||isNaN(L)){alert('Заполните поля');return;} let h2=h1+(i/1000)*L; document.getElementById('interpSlopeSolution').innerHTML = `H₂ = H₁ + (i×L)/1000 = ${h1} + (${i}×${L})/1000 = ${h2.toFixed(4)} м`; }
+    function calcInterpTwoPoints(){ let h1=parseFloat(document.getElementById('interpElev1').value), h2=parseFloat(document.getElementById('interpElev2').value), L=parseFloat(document.getElementById('interpTotalL').value), Lx=parseFloat(document.getElementById('interpLx').value); if(isNaN(h1)||isNaN(h2)||isNaN(L)||isNaN(Lx)){alert('Заполните поля');return;} let hx=h1+(h2-h1)*(Lx/L); document.getElementById('interpTwoPointsSolution').innerHTML = `Hx = H₁ + (H₂-H₁)×(Lx/L) = ${h1} + (${h2-h1})×(${Lx}/${L}) = ${hx.toFixed(4)} м`; }
+    
+    // ========== ДИНАМИЧЕСКОЕ СЖАТИЕ КНОПОК ПРИ ПРОКРУТКЕ ==========
+    const scrollContainer = document.getElementById('scrollContainer');
+    const allButtons = document.querySelectorAll('.btn');
+    
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', function() {
+            const scrollY = scrollContainer.scrollTop;
+            const compressIntensity = Math.min(scrollY / 200, 0.08);
+            
+            allButtons.forEach(btn => {
+                if (scrollY > 30) {
+                    btn.style.transform = `scale(${1 - compressIntensity})`;
+                    btn.style.transition = 'transform 0.1s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
+                } else {
+                    btn.style.transform = 'scale(1)';
+                }
+            });
+        });
+    }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    updateTriangleInputs(); updateCircleInputs(); updateSlopeUI(); selectInterpType('bySlope');
+</script>
+</body>
 </html>
